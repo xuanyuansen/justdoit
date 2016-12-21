@@ -2,7 +2,7 @@ package com.xuanyuansen.core
 
 import com.typesafe.scalalogging.Logger
 import com.xuanyuansen.conf.AppConfig
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.{ SparkConf, SparkContext }
 import org.slf4j.LoggerFactory
 
 /**
@@ -19,8 +19,8 @@ object Rockit {
     var algos: Seq[String] = Seq()
     var app: String = ""
     var label: String = ""
-    var mtype : String = ""
-    var bpath : String = ""
+    var mtype: String = ""
+    var bpath: String = ""
 
     this.parser.parse(args, com.xuanyuansen.conf.AppParam()) match {
       case Some(config) =>
@@ -43,11 +43,11 @@ object Rockit {
     val conf = new SparkConf().setAppName("rock it")
     val sc = new SparkContext(conf)
 
-    AppConfig.AppConfig.filter( r=>r.appName.equals(app) ).foreach{
-      r=>
+    AppConfig.AppConfig.filter(r => r.appName.equals(app)).foreach {
+      r =>
         val strategy = r.strategy
         val baseLineModel = strategy
-          .BaseLineTrain(sc =sc , mType = mtype, algorithmType = algos.head, files = files, label = label)
+          .BaseLineTrain(sc = sc, mType = mtype, algorithmType = algos.head, files = files, label = label)
         strategy
           .SaveModel(path = bpath, mType = mtype, model = baseLineModel)
     }
