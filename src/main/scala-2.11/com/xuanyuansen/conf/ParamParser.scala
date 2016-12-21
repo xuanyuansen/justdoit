@@ -7,11 +7,13 @@ import org.slf4j.LoggerFactory
  * Created by wangshuai on 2016/12/20.
  */
 case class AppParam(
-  apps: String = "",
+  app: String = "",
   debug: Boolean = false,
   files: Seq[String] = Seq(),
   algorithms: Seq[String] = Seq(),
-  label: String = ""
+  label: String = "",
+  mode : String = "",
+  baseLineModelPath : String = ""
 )
 
 object ParamParser {
@@ -21,9 +23,21 @@ object ParamParser {
     new scopt.OptionParser[AppParam]("Rockit") {
       head("Rockit", "1.0")
 
+      opt[String]('b', "baseline") required () valueName "<baseline>" action {
+        (x, c) =>
+          c.copy(baseLineModelPath = x)
+      }
+
+
+      opt[String]('m', "mode") required () valueName "<mode>" action {
+        (x, c) =>
+          c.copy(app = x)
+      }
+
+
       opt[String]('c', "app") required () valueName "<app>" action {
         (x, c) =>
-          c.copy(apps = x)
+          c.copy(app = x)
       }
 
       opt[String]('l', "label") required () valueName "<label>" action {

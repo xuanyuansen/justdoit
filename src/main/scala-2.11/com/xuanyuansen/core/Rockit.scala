@@ -1,7 +1,8 @@
 package com.xuanyuansen.core
 
 import com.typesafe.scalalogging.Logger
-import org.apache.spark.{ SparkConf, SparkContext }
+import com.xuanyuansen.conf.AppConfig
+import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
 /**
@@ -18,16 +19,21 @@ object Rockit {
     var algos: Seq[String] = Seq()
     var app: String = ""
     var label: String = ""
+    var mtype : String = ""
+    var bpath : String = ""
 
     this.parser.parse(args, com.xuanyuansen.conf.AppParam()) match {
       case Some(config) =>
         logger.info(config.algorithms.mkString(","))
         logger.info(config.files.mkString(","))
-        logger.info(config.apps)
+        logger.info(config.app)
+        logger.info(config.mode)
         files = config.files
         algos = config.algorithms
-        app = config.apps
+        app = config.app
         label = config.label
+        mtype = config.mode
+        bpath = config.baseLineModelPath
 
       case None =>
         logger.error("bad argument, please check your argument!")
@@ -37,8 +43,14 @@ object Rockit {
     val conf = new SparkConf().setAppName("rock it")
     val sc = new SparkContext(conf)
 
-    val dataRdd = sc.union(files.map(r => sc.textFile(r)))
-    val labelRdd = sc.textFile(label)
+    AppConfig.AppConfig.filter( r=>r.appName.equals(app) ).foreach{
+      r=>
+        val strategy = r.strategy
+        val baseLineModel = strategy
+          .BaseLineTrain(sc =sc , mType = mtype, algorithmType = algos.head, files = files, label = label)
+        strategy
+          .SaveModel(path = bpath, mType = mtype, model = baseLineModel)
+    }
 
     sc.stop()
   }
