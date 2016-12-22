@@ -6,9 +6,9 @@ import com.xuanyuansen.core.BaseAlgorithmPipeline
 /**
  * Created by wangshuai on 2016/12/20.
  */
-case class AlgoStrategy[T,K](
+case class AlgoStrategy[T, K](
   appName: String,
-  strategy: BaseAlgorithmPipeline[T,K]
+  strategy: BaseAlgorithmPipeline[T, K]
 )
     extends Serializable
 

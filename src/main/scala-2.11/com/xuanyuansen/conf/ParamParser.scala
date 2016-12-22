@@ -12,8 +12,8 @@ case class AppParam(
   files: Seq[String] = Seq(),
   algorithms: Seq[String] = Seq(),
   label: String = "",
-  mode : String = "",
-  baseLineModelPath : String = ""
+  mode: String = "",
+  baseLineModelPath: String = ""
 )
 
 object ParamParser {
@@ -28,12 +28,10 @@ object ParamParser {
           c.copy(baseLineModelPath = x)
       }
 
-
       opt[String]('m', "mode") required () valueName "<mode>" action {
         (x, c) =>
           c.copy(app = x)
       }
-
 
       opt[String]('c', "app") required () valueName "<app>" action {
         (x, c) =>

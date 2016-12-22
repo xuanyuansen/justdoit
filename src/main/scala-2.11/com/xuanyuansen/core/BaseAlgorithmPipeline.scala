@@ -21,19 +21,16 @@ import scala.reflect.ClassTag
  * if sequence exits, then using word2vec
  */
 
-
-
-class BaseAlgorithmPipeline[T,K]{
+class BaseAlgorithmPipeline[T, K] {
   @transient lazy protected val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
-  class MlModel(mType: String, algorithmType: String){
+  class MlModel(mType: String, algorithmType: String) {
 
-    def fit(data: RDD[(T,SparseVector)],label: RDD[(T, K)]): Unit = {
+    def fit(data: RDD[(T, SparseVector)], label: RDD[(T, K)]): Unit = {
 
     }
 
   }
-
 
   def SaveModel(path: String, mType: String, model: MlModel): Unit = {
 
@@ -43,15 +40,15 @@ class BaseAlgorithmPipeline[T,K]{
     null
   }
 
-  def Data2Label(labelFile: String) : RDD[(T, K)]= {
+  def Data2Label(labelFile: String): RDD[(T, K)] = {
     null
   }
 
- def Data2Feature(dataFile: Seq[String]): RDD[(T,SparseVector)] = {
+  def Data2Feature(dataFile: Seq[String]): RDD[(T, SparseVector)] = {
     null
   }
 
-  def BaseLineTrain(sc : SparkContext, mType: String, algorithmType: String, files: Seq[String], label: String): MlModel = {
+  def BaseLineTrain(sc: SparkContext, mType: String, algorithmType: String, files: Seq[String], label: String): MlModel = {
     val model = new MlModel(mType, algorithmType)
     val features = Data2Feature(files)
     val labels = Data2Label(label)
