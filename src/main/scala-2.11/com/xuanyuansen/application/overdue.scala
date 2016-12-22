@@ -16,10 +16,10 @@ object overdue {
     val conf = new SparkConf().setAppName("rock it")
     val sc = new SparkContext(conf)
 
-    val file = "file:////home/wangliaofan/Downloads/contest/train/browse_history_train.txt"
-    val label = "file:////home/wangliaofan/Downloads/contest/train/overdue_train.txt"
-    val trainFile = "file:////home/wangliaofan/Downloads/contest/train/sequence_label_to_train.txt"
-    val dictFile = "file:////home/wangliaofan/Downloads/contest/train/dict.txt"
+    val file = "file:////home/lianhua/bgdata/fiancedata/train/browse_history_train.txt"
+    val label = "file:////home/lianhua/bgdata/fiancedata/train/overdue_train.txt"
+    val trainFile = "file:////home/lianhua/bgdata/fiancedata/train/sequence_label_to_train.txt"
+    val dictFile = "file:////home/lianhua/bgdata/fiancedata/train/dict.txt"
 
     val sequenceData = sc
       .textFile(file, 30)
