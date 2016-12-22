@@ -28,7 +28,7 @@ object overdue {
         .map {
           r =>
             val tmp = r.split(",")
-            tmp.head -> Seq((tmp.apply(1).toLong, "%s_%s".format(tmp.apply(2), tmp.apply(3))))
+            tmp.head -> Seq((tmp.apply(1).toLong + tmp.apply(2).toLong, "%s".format(tmp.apply(3))))
         }.reduceByKey(_ ++ _)
         .map {
           r =>
@@ -64,7 +64,7 @@ object overdue {
         .map {
           r =>
             val tmp = r.split(",")
-            tmp.head -> Seq((tmp.apply(1).toLong, "%s_%s".format(tmp.apply(2), tmp.apply(3))))
+            tmp.head -> Seq((tmp.apply(1).toLong + tmp.apply(2).toLong, "%s".format(tmp.apply(3))))
         }.reduceByKey(_ ++ _)
         .map {
           r =>
