@@ -53,7 +53,7 @@ object FeatureTransformer {
     }
   }
 
-  def priceFeature(data: Seq[(Long, Int, Double, Int)]): Seq[(Int, Double)] = {
+  def bankFeature(data: Seq[(Long, Int, Double, Int)]): Seq[(Int, Double)] = {
     val paied = data.filter(_._4 == 1).map(_._3)
     val p_avs = getAVS(paied)
 
@@ -85,14 +85,14 @@ object FeatureTransformer {
   /*
   用户浏览行为browse_history.txt。共4个字段。其中，第2个字段，时间戳为0表示时间未知。
   用户id,时间戳,浏览行为数据,浏览子行为编号
-  300*12=360
+  300*12=3600
   base_type = 0-299
   sub_type = 0-11
   base_type * sub_type
   34801,5926003545,82,1
   34801,5926003545,101,1
   */
-  def browsFeature(data: Seq[(Long, Int, Int)]): Seq[(Int, Double)] = {
+  def browseFeature(data: Seq[(Long, Int, Int)]): Seq[(Int, Double)] = {
     val info = data.map {
       r =>
         r._2 * r._3 -> 1
@@ -126,7 +126,7 @@ object FeatureTransformer {
    * 3147,5906744363,6,18.626118,18.661937,20.664418,18.905766,17.847133,1,0.000000,0.000000,0.000000,0.000000,19.971271,0
    * 22717,5934018585,3,0.000000,0.000000,20.233635,18.574069,18.396785,0,0.000000,0.000000,0.000000,0.000000,0.000000,0
    */
-  def bankFeature(data: Seq[Array[Double]]): Seq[(Int, Double)] = {
+  def billFeature(data: Seq[Array[Double]]): Seq[(Int, Double)] = {
     val outFeature = mutable.ArrayBuffer[(Int, Double)]()
     //1
     outFeature += 0 -> data.length.toDouble
@@ -193,17 +193,17 @@ object FeatureTransformer {
     println(feature)
 
     val bankInfo = Seq((5894316387L, 0, 13.756664, 0), (5894321388L, 1, 13.756664, 0))
-    val f2 = priceFeature(bankInfo)
+    val f2 = bankFeature(bankInfo)
     println(f2)
 
     val browseInfo = Seq((5926003545L, 173, 1), (5926003545L, 164, 4))
-    val f3 = browsFeature(browseInfo)
+    val f3 = browseFeature(browseInfo)
     println(f3)
 
     val bill1 = Array(6.0, 18.626118, 18.661937, 20.664418, 18.905766, 17.847133, 1.0, 0.000000, 0.000000, 0.000000, 0.000000, 19.971271, 0.0)
     val bill2 = Array(6.0, 18.905766, 18.909954, 20.664418, 19.113305, 17.911506, 1.0, 0.000000, 0.000000, 0.000000, 0.000000, 19.971271, 0.0)
     val billInfo = Seq(bill1, bill2)
-    val f4 = bankFeature(billInfo)
+    val f4 = billFeature(billInfo)
     println(f4)
   }
 }
