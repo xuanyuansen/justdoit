@@ -43,9 +43,9 @@ object FeatureTransformer {
 
   def getAVS(data: Seq[Double]): (Double, Double, Double) = {
     val p_cnt = data.length
-    if (p_cnt<=0){
+    if (p_cnt <= 0) {
       (0.0, 0.0, 0.0)
-    }else {
+    } else {
       val p_average = data.sum / p_cnt
       val p_variance = data.map { r => (r - p_average) * (r - p_average) }.sum / p_cnt
 
@@ -130,28 +130,29 @@ object FeatureTransformer {
     val outFeature = mutable.ArrayBuffer[(Int, Double)]()
     //1
     outFeature += 0 -> data.length.toDouble
+    outFeature += 1 -> data.map { r => r.head }.distinct.length.toDouble
 
     val fData1 = data.filter { r => r.last == 1 }
     val fData2 = data.filter { r => r.last == 0 }
     //44
-    for (i <- 0 to 11) {
+    for (i <- 1 to 11) {
       val tmp = fData1.map(r => r.apply(i))
       val tmp_avs = getAVS(tmp)
 
-      outFeature += (4 * i + 1) -> tmp.sum
-      outFeature += (4 * i + 2) -> tmp_avs._1
-      outFeature += (4 * i + 3) -> tmp_avs._2
-      outFeature += (4 * i + 4) -> tmp_avs._3
+      outFeature += (4 * i + 0 + 2) -> tmp.sum
+      outFeature += (4 * i + 1 + 2) -> tmp_avs._1
+      outFeature += (4 * i + 2 + 2) -> tmp_avs._2
+      outFeature += (4 * i + 3 + 2) -> tmp_avs._3
     }
     //44
-    for (i <- 0 to 11) {
+    for (i <- 1 to 11) {
       val tmp = fData2.map(r => r.apply(i))
       val tmp_avs = getAVS(tmp)
 
-      outFeature += (4 * (i + 11) + 1) -> tmp.sum
-      outFeature += (4 * (i + 11) + 2) -> tmp_avs._1
-      outFeature += (4 * (i + 11) + 3) -> tmp_avs._2
-      outFeature += (4 * (i + 11) + 4) -> tmp_avs._3
+      outFeature += (4 * (i + 11) + 0 + 2) -> tmp.sum
+      outFeature += (4 * (i + 11) + 1 + 2) -> tmp_avs._1
+      outFeature += (4 * (i + 11) + 2 + 2) -> tmp_avs._2
+      outFeature += (4 * (i + 11) + 3 + 2) -> tmp_avs._3
     }
 
     outFeature
@@ -189,7 +190,7 @@ object FeatureTransformer {
     //test1
     val info = "6346,1,2,4,4,2"
     val feature = fianceProfileFeature(info)
-    println(info)
+    println(feature)
 
     val bankInfo = Seq((5894316387L, 0, 13.756664, 0), (5894321388L, 1, 13.756664, 0))
     val f2 = priceFeature(bankInfo)
