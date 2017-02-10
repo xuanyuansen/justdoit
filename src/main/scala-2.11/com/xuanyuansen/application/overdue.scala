@@ -16,7 +16,7 @@ object overdue {
     val conf = new SparkConf().setAppName("rock it")
     val sc = new SparkContext(conf)
 
-    if (args.length==4) {
+    if (args.length == 4) {
 
       val file = "file:////home/lianhua/bgdata/fiancedata/train/browse_history_train.txt"
       val label = "file:////home/lianhua/bgdata/fiancedata/train/overdue_train.txt"
@@ -46,10 +46,10 @@ object overdue {
 
       val labelFile = sc
         .textFile(label, 20).map {
-        r =>
-          val tmp = r.split(",")
-          tmp.head -> tmp.apply(1)
-      }
+          r =>
+            val tmp = r.split(",")
+            tmp.head -> tmp.apply(1)
+        }
 
       sequenceData
         .join(labelFile)
@@ -57,8 +57,7 @@ object overdue {
           r._2._2 + "\t" + r._2._1.map(_._2).mkString(",")
         }
         .saveAsTextFile(trainFile)
-    }
-    else if (args.length==2){
+    } else if (args.length == 2) {
       val sequenceData = sc
         .textFile(args.head, 30)
         .map {
@@ -73,7 +72,7 @@ object overdue {
 
       sequenceData
         .map { r =>
-          r._1 + "\t" + r._2.map{k=>k._2}.mkString(",")
+          r._1 + "\t" + r._2.map { k => k._2 }.mkString(",")
         }
         .saveAsTextFile(args.apply(1))
     }
