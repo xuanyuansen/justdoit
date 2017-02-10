@@ -43,10 +43,14 @@ object FeatureTransformer {
 
   def getAVS(data: Seq[Double]): (Double, Double, Double) = {
     val p_cnt = data.length
-    val p_average = data.sum / p_cnt
-    val p_variance = data.map { r => (r - p_average) * (r - p_average) }.sum / p_cnt
+    if (p_cnt<=0){
+      (0.0, 0.0, 0.0)
+    }else {
+      val p_average = data.sum / p_cnt
+      val p_variance = data.map { r => (r - p_average) * (r - p_average) }.sum / p_cnt
 
-    (p_average, p_variance, scala.math.sqrt(p_variance))
+      (p_average, p_variance, scala.math.sqrt(p_variance))
+    }
   }
 
   def priceFeature(data: Seq[(Long, Int, Double, Int)]): Seq[(Int, Double)] = {
