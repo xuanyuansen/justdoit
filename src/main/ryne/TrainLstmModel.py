@@ -1,4 +1,6 @@
 #coding=UTF-8
+#!/usr/bin/env python
+
 '''
 Created on 2016年8月17日
 train lstm model
