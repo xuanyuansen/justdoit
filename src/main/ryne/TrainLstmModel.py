@@ -36,6 +36,7 @@ def fromFile2SimpleData(filePath, wordDic={}):
         random.shuffle(lines)
         #filter 2 to get length >=5
         filterLines = [element for element in lines if ( len( element[1].split(",") )>=5 )]
+        filterLines = [[element[0],element[1][0:1000]] if ( len( element[1].split(",") )>=1000 ) else element for element in lines ]
         outLines = [ (1.0 if element[0]=="1" else 0.0, element[1].split(",")) for element in filterLines]
         label = map(lambda x: 1 if x[0]==1.0 else 0,outLines)
         data = map(lambda x: [ wordDic[ele] if wordDic.has_key(ele) else wordDic["UNKNOWN"]  for ele in x[1] ],outLines)
@@ -49,8 +50,8 @@ if __name__ == '__main__':
 
     # create the model
     model = Sequential()
-    model.add(Embedding(2000, 32))
-    model.add(LSTM(32,dropout_W=0.4,dropout_U=0.4))
+    model.add(Embedding(1000, 64))
+    model.add(LSTM(64,dropout_W=0.5,dropout_U=0.5))
     model.add(Dense(1, activation='sigmoid'))
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     print(model.summary())
@@ -66,10 +67,10 @@ if __name__ == '__main__':
     test_x = train_data[int(sys.argv[3]):-1]
     test_y = label[int(sys.argv[3]):-1]
 
-    X_train = sequence.pad_sequences(train_x)
-    X_test = sequence.pad_sequences(test_x)
+    X_train = sequence.pad_sequences(train_x, maxlen=500)
+    X_test = sequence.pad_sequences(test_x, maxlen=500)
 
-    model.fit(X_train, train_y, nb_epoch=10, batch_size=1024)
+    model.fit(X_train, train_y, nb_epoch=20, batch_size=64)
 
     scores_train = model.evaluate(X_train, train_y, batch_size=1024,verbose=1)
     print("Train Accuracy: %.2f%%" % (scores_train[1]*100))

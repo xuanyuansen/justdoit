@@ -29,11 +29,11 @@ def fromFile2Data(filePath, wordDic={}):
     outLines = []
     with open(filePath, 'r') as inputFile:
         #filter words length >=5
-        lines = [element.split("\t") for element in inputFile.readlines() if (len(element.split("\t"))>=5)]
+        lines = [element.split("\t") for element in inputFile.readlines() if (len(element.split("\t")[1].split(","))>=5)]
 
         did = [ element[0] for element in lines]
 
-        data = map(lambda x: [ wordDic[ele] if wordDic.has_key(ele) else wordDic["UNKNOWN"]  for ele in x[1:-1] ], lines)
+        data = map(lambda x: [ wordDic[ele] if wordDic.has_key(ele) else wordDic["UNKNOWN"]  for ele in x[1].split(",") ], lines)
 
         outdata = [ element for element in data if float(element.count("UNKNOWN"))/len(element)<=0.4 ]
     return did, outdata
@@ -55,12 +55,13 @@ def lstm_predict(lstm_model, word_dic, to_predict_file, predict_res_file, gpuMod
     with open(predict_res_file, 'w') as res:
         did, data = fromFile2Data(to_predict_file, word_dic)
         print "local predict data done"
+        print data[0:100]
         if gpuMode:
             data_predict_seq = sequence.pad_sequences(data, maxlen=500)
             label = lstm_model.predict(data_predict_seq, batch_size=1024)
             out = zip(did, [ele[0] for ele in label])
             for element in out:
-                res.writelines( "{0}\t{2}\t{1}\n".format(element[0],  str(element[1]), "1" if (element[1]>0.5) else "0"))
+                res.writelines( "{0},{1}\n".format(element[0],  str(element[1])))
 
         else:
             data_cnt = len(did)
@@ -94,9 +95,7 @@ def lstm_predict(lstm_model, word_dic, to_predict_file, predict_res_file, gpuMod
             label = lstm_model.predict(data_predict_seq, batch_size=256)
             out = zip(sub_did, [ele[0] for ele in label])
             for element in out:
-                res.writelines( "{0}\t{2}\t{1}\n".format(element[0],  str(element[1]), "1" if (element[1]>0.5) else "0"))
-
-
+                res.writelines( "{0},{1}\n".format(element[0],  str(element[1]) ) )
 
 if __name__ == '__main__':
     if ( len(sys.argv) < 6 ) :
