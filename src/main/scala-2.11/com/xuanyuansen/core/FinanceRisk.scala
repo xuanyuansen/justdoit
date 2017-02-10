@@ -50,7 +50,7 @@ object FinanceRisk {
       .map {
         r =>
           val tmp = r.split(",")
-          tmp.head -> Seq((tmp.apply(1).toLong, tmp.apply(1).toInt, tmp.apply(1).toInt))
+          tmp.head -> Seq((tmp.apply(1).toLong, tmp.apply(2).toInt, tmp.apply(3).toInt))
       }
       .reduceByKey(_ ++ _)
       .join(loan)
