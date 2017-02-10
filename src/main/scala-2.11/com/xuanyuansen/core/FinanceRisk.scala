@@ -21,13 +21,17 @@ object FinanceRisk {
     val conf = new SparkConf().setAppName("Finance Risk")
     val sc = new SparkContext(conf)
 
-    val basePath = "file:////home/lianhua/bgdata/fiancedata/train/"
+    val basePath = if (args.length < 1)
+      "file:////home/lianhua/bgdata/fiancedata/train/"
+    else
+      args.head
 
     val baseUserInfoPath = basePath + "user_info_train.txt"
     val browsePath = basePath + "browse_history_train.txt"
     val billPath = basePath + "bill_detail_train.txt"
     val bankPath = basePath + "bank_detail_train.txt"
     val loanPath = basePath + "loan_time_train.txt"
+    val labelPath = basePath + "overdue_train.txt"
 
     val loan = sc.textFile(loanPath).map {
       r =>
@@ -93,6 +97,38 @@ object FinanceRisk {
 
     println("bank")
     testRdd(bankFeature)
+
+    val finalFeature = userFeature
+      .fullOuterJoin(
+        browseFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize) -> m._2 } }
+      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize, 0.0)))) }
+      .fullOuterJoin(
+        billFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + browseSize) -> m._2 } }
+      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + browseSize, 0.0)))) }
+      .fullOuterJoin(
+        bankFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + browseSize + billSize) -> m._2 } }
+      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + browseSize + billSize, 0.0)))) }
+
+    println("final")
+    testRdd(finalFeature)
+
+    val label = sc.textFile(labelPath).map {
+      r =>
+        val tmp = r.split(",")
+        tmp.head -> tmp.last.toInt
+    }
+
+    val trainSet = label
+      .join(finalFeature).map {
+        r =>
+          r._2._1 + "\t" + r._2._2.map { r => r._1.toString + ":" + r._2.toString }.mkString("\t")
+      }
+
+    println("label data size is %d".format(trainSet.count()))
+    testRdd(trainSet)
+    if (args.length >= 2) {
+      trainSet.saveAsTextFile(args.apply(1))
+    }
 
     sc.stop()
     println("work done")
