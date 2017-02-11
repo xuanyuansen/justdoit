@@ -96,16 +96,19 @@ object FinanceRisk {
     println("bank")
     testRdd(bankFeature)
 
+    /**
+     * .fullOuterJoin(
+     * browseFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize) -> m._2 } }
+     * ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize, 0.0)))) }
+     *
+     */
     val finalFeature = userFeature
       .fullOuterJoin(
-        browseFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize) -> m._2 } }
+        billFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize) -> m._2 } }
       ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize, 0.0)))) }
       .fullOuterJoin(
-        billFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + browseSize) -> m._2 } }
-      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + browseSize, 0.0)))) }
-      .fullOuterJoin(
-        bankFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + browseSize + billSize) -> m._2 } }
-      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + browseSize + billSize, 0.0)))) }
+        bankFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + billSize) -> m._2 } }
+      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + billSize, 0.0)))) }
 
     println("final")
     testRdd(finalFeature)
