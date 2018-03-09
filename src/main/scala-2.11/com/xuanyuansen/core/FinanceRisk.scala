@@ -20,17 +20,15 @@ object FinanceRisk {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName("Finance Risk")
     val sc = new SparkContext(conf)
+    val mode = args.head
 
-    val basePath = if (args.length < 1)
-      "file:////home/lianhua/bgdata/fiancedata/train/"
-    else
-      args.head
+    val basePath = args.apply(1)
 
-    val baseUserInfoPath = basePath + "user_info_train.txt"
-    val browsePath = basePath + "browse_history_train.txt"
-    val billPath = basePath + "bill_detail_train.txt"
-    val bankPath = basePath + "bank_detail_train.txt"
-    val loanPath = basePath + "loan_time_train.txt"
+    val baseUserInfoPath = basePath + "user_info_%s.txt".format(mode)
+    val browsePath = basePath + "browse_history_%s.txt".format(mode)
+    val billPath = basePath + "bill_detail_%s.txt".format(mode)
+    val bankPath = basePath + "bank_detail_%s.txt".format(mode)
+    val loanPath = basePath + "loan_time_%s.txt".format(mode)
     val labelPath = basePath + "overdue_train.txt"
 
     val loan = sc.textFile(loanPath).map {
@@ -98,36 +96,46 @@ object FinanceRisk {
     println("bank")
     testRdd(bankFeature)
 
+    /**
+     * .fullOuterJoin(
+     * browseFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize) -> m._2 } }
+     * ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize, 0.0)))) }
+     *
+     */
     val finalFeature = userFeature
       .fullOuterJoin(
-        browseFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize) -> m._2 } }
+        billFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize) -> m._2 } }
       ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize, 0.0)))) }
       .fullOuterJoin(
-        billFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + browseSize) -> m._2 } }
-      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + browseSize, 0.0)))) }
-      .fullOuterJoin(
-        bankFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + browseSize + billSize) -> m._2 } }
-      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + browseSize + billSize, 0.0)))) }
+        bankFeature.map { k => k._1 -> k._2.map { m => (m._1 + userSize + billSize) -> m._2 } }
+      ).map { k => k._1 -> k._2._1.getOrElse(Seq((0, 0.0))).++(k._2._2.getOrElse(Seq((userSize + billSize, 0.0)))) }
 
     println("final")
     testRdd(finalFeature)
 
-    val label = sc.textFile(labelPath).map {
-      r =>
-        val tmp = r.split(",")
-        tmp.head -> tmp.last.toInt
-    }
-
-    val trainSet = label
-      .join(finalFeature).map {
+    if (mode.equals("train")) {
+      val label = sc.textFile(labelPath).map {
         r =>
-          r._2._1 + "\t" + r._2._2.map { r => r._1.toString + ":" + r._2.toString }.mkString("\t")
+          val tmp = r.split(",")
+          tmp.head -> tmp.last.toInt
       }
 
-    println("label data size is %d".format(trainSet.count()))
-    testRdd(trainSet)
-    if (args.length >= 2) {
-      trainSet.saveAsTextFile(args.apply(1))
+      val trainSet = label
+        .join(finalFeature).map {
+          r =>
+            r._2._1 + "\t" + r._2._2.map { r => r._1.toString + ":" + r._2.toString }.mkString("\t")
+        }
+
+      println("label data size is %d".format(trainSet.count()))
+      testRdd(trainSet)
+
+      trainSet.saveAsTextFile(args.apply(2))
+    } else {
+      finalFeature.map {
+        r =>
+          r._1 + "\t" + r._2.map { r => r._1.toString + ":" + r._2.toString }.mkString("\t")
+      }
+        .saveAsTextFile(args.apply(2))
     }
 
     sc.stop()
