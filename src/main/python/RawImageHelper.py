@@ -1,0 +1,207 @@
+# -*- coding: utf-8 -*-
+from PIL import Image
+import scipy.misc
+import numpy as np
+import json
+import os
+from keras.utils import np_utils
+from keras.callbacks import ReduceLROnPlateau, CSVLogger, EarlyStopping
+import resnet
+from keras.preprocessing.image import ImageDataGenerator
+import random
+import gc
+import tensorflow as tf
+
+
+def label_mapping(label_list):
+    log_label_list = [np.log(ele) if ele > 0 else 0 for ele in label_list]
+    y_max = max(log_label_list)
+    print("y_max", y_max)
+    y_min = min(log_label_list)
+    print("y_min", y_min)
+    y_gap = float(y_max - y_min)/9
+    out_label = np.array([[round(float(element-y_min)/y_gap)] for element in log_label_list])
+    print(out_label[0:100])
+    print(max(out_label))
+    print(min(out_label))
+    return out_label
+
+
+def to_train_data(images, label_dict):
+    x_data = [image[1] for image in images if image[0] in label_dict]
+    print(np.shape(x_data))
+    y_label = [label_dict[image[0]] for image in images if image[0] in label_dict]
+    return x_data, y_label
+
+
+def dir_to_data(source_dir):
+    images = []
+    for parent, dir_names, file_names in os.walk(source_dir):
+        image_names = ["{0}/{1}".format(parent, file_name) for file_name in file_names]
+        images = [(file_name.split('/')[-1], np.array(read_raw_image(file_name))) for file_name in image_names]
+        # print(parent)
+        # print(dir_names)
+        # print(file_names)
+    return images
+
+
+def from_file_label(in_file_path):
+    def to_json(element):
+        try:
+            return json.loads(element, encoding='utf-8')
+        except:
+            print(element)
+            return {}
+    dict_label = {}
+    with open(in_file_path, 'r') as info:
+        content = info.readlines()
+        # filter illegal lines
+        sub_content = [element.strip()[0:-1] for element in content if len(element) > 10]
+        print(sub_content)
+        json_content = [to_json(element) for element in sub_content]
+        for element in json_content:
+            if "image_paths" in element and 'view_sales' in element:
+                c_key = str(element['image_paths'][0]).split('/')[1]
+                c_value = int(element['view_sales'])
+                # print(c_key, c_value)
+                if c_key in dict_label:
+                    dict_label.setdefault(c_value if dict_label.get(c_key) <= c_value else dict_label.get(c_key))
+                else:
+                    dict_label.setdefault(c_key, c_value)
+    return dict_label
+
+
+def read_raw_image(path, size=32):
+    src = Image.open(path)
+    # print(src.format)
+    # print(src)
+    new_image = src.resize((size, size))
+    # print(new_image)
+    return new_image
+
+
+def get_pixel_image(path):
+    src = scipy.misc.imread(path)
+    return src
+
+
+def train_model(X_train, X_test, y_train, y_test):
+    lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=np.sqrt(0.1), cooldown=0, patience=5, min_lr=0.5e-6)
+    early_stopper = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=10)
+    csv_logger = CSVLogger('resnet18_cifar10.csv')
+
+    batch_size = 32
+    nb_classes = 10
+    nb_epoch = 20
+
+    # input image dimensions
+    img_rows, img_cols = 32, 32
+    # The CIFAR10 images are RGB.
+    img_channels = 3
+
+    y_train_model = np_utils.to_categorical(y_train, nb_classes)
+    y_test_model = np_utils.to_categorical(y_test, nb_classes)
+
+    x_train_model = X_train.astype('float32')
+    x_test_model = X_test.astype('float32')
+
+    # subtract mean and normalize
+    mean_image = np.mean(x_train_model, axis=0)
+    x_train_model -= mean_image
+    x_test_model -= mean_image
+    x_train_model /= 256.
+    x_test_model /= 256.
+
+    model = resnet.ResnetBuilder.build_resnet_18((img_channels, img_rows, img_cols), nb_classes)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+
+    print('Using real-time data augmentation.')
+    # This will do preprocessing and realtime data augmentation:
+    datagen = ImageDataGenerator(
+        featurewise_center=False,  # set input mean to 0 over the dataset
+        samplewise_center=False,  # set each sample mean to 0
+        featurewise_std_normalization=False,  # divide inputs by std of the dataset
+        samplewise_std_normalization=False,  # divide each input by its std
+        zca_whitening=False,  # apply ZCA whitening
+        rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
+        width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
+        height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+        horizontal_flip=True,  # randomly flip images
+        vertical_flip=False)  # randomly flip images
+
+    # Compute quantities required for featurewise normalization
+    # (std, mean, and principal components if ZCA whitening is applied).
+    datagen.fit(X_train)
+
+    # Fit the model on the batches generated by datagen.flow().
+    model.fit_generator(datagen.flow(x_train_model, y_train_model, batch_size=batch_size),
+                        steps_per_epoch=x_train_model.shape[0] // batch_size,
+                        validation_data=(x_test_model, y_test_model),
+                        epochs=nb_epoch, verbose=1, max_q_size=100,
+                        callbacks=[lr_reducer, early_stopper, csv_logger])
+    return model
+
+
+if __name__ == "__main__":
+    np.random.seed(8)
+    tf.set_random_seed(8)
+
+    test = "/home/wangliaofan/Downloads/TB2Q1dMbgJkpuFjSszcXXXfsFXa_!!2735252406.jpg"
+    pil_img = read_raw_image(test)
+
+    sci_img = get_pixel_image(test)
+    print(sci_img)
+    print(np.shape(sci_img))
+    array_pil_img = np.array(pil_img)
+    print(type(array_pil_img))
+    print(np.shape(array_pil_img))
+
+    file_path = "/home/wangliaofan/Documents/Code/spiderTaobao/train.json"
+    labels = from_file_label(file_path)
+    print(labels)
+    print(len(labels))
+
+    test_dir = "/home/wangliaofan/Documents/Code/spiderTaobao/image/full"
+    # test_dir = "/home/wangliaofan/Documents/Data"
+    image_data = dir_to_data(test_dir)
+    # print(image_data)
+    X, y = to_train_data(images=image_data, label_dict=labels)
+    print(type(X))
+    print(np.shape(X))
+
+    y_label_transformed = label_mapping(label_list=y)
+    print(type(y_label_transformed))
+    print(np.shape(y_label_transformed))
+
+    num_sample = len(y_label_transformed)
+    print(num_sample)
+
+    x_train = np.zeros((int(num_sample), 32, 32, 3), dtype='uint8')
+    x_shape = np.shape(x_train)
+    for i in range(0, x_shape[0]):
+            x_train[i, :, :, :] = X[i]
+
+    raw_x_train = x_train[0:3*int(num_sample/4)]
+    raw_x_test = x_train[3*int(num_sample/4):]
+    raw_y_train = y_label_transformed[0:3*int(num_sample / 4)]
+    raw_y_test = y_label_transformed[3*int(num_sample / 4):]
+
+    print("y label")
+    print(raw_y_train[0:100])
+
+    # input check
+    print(type(raw_x_train), np.shape(raw_x_train), len(raw_x_train), type(raw_x_train[0]), np.shape(raw_x_train[0]))
+    print(type(raw_y_train), np.shape(raw_y_train), len(raw_y_train), raw_y_train[0], type(raw_y_train[0]))
+
+    model = train_model(X_train=raw_x_train, X_test=raw_x_test, y_train=raw_y_train, y_test=raw_y_test)
+
+    model_json = model.to_json()
+    with open("model.json", "w") as json_file:
+        json_file.write(model_json)
+
+    model.save_weights("model.weights")
+
+    gc.collect()
+    pass
